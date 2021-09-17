@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import {ConfigModule} from '@nestjs/config';
-import {JwtModule} from '@nestjs/jwt';
 import {TypeOrmModule} from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import {User} from './entities/user.entity';
+import {AuthModule} from './auth/auth.module';
+import {PermissionModule} from './permission/permission.module';
+import EntityCombine from "./entities/index";
+import {RoleModule} from './role/role.module';
 
 @Module({
   imports: [
@@ -16,16 +16,15 @@ import {User} from './entities/user.entity';
         username: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_DATABASE_NAME,
-        entities: [User],
+        entities: EntityCombine,
         synchronize: true,
     }),
-    TypeOrmModule.forFeature([User]),
-    JwtModule.register({
-        secret: process.env.JWT_SECRET,
-        signOptions: {expiresIn: "1d"}
-    })
+    
+    AuthModule,
+    PermissionModule,
+    RoleModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
-export class AppModule {}
+export class AppModule {}  
