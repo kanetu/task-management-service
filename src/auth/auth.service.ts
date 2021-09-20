@@ -10,7 +10,7 @@ export class AuthService {
     
     }
 
-    async createUser(data: any): Promise<User>{
+    async save(data: any): Promise<User>{
         return this.userRepository.save(data)
     }
 
@@ -18,4 +18,12 @@ export class AuthService {
         return this.userRepository.findOne(condition)
     }
   
+    async authPermissions(userId: string): Promise<any> {
+        return this.userRepository.createQueryBuilder("user")
+        .leftJoinAndSelect("user.role", "role")
+        .leftJoinAndSelect("role.permissions", "permission")
+        .where({id: userId})
+        .getOne()
+        
+    }
 }

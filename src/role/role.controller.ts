@@ -1,5 +1,7 @@
-import {Body, Controller, Get, NotFoundException, Post, Put, Req, UseGuards} from "@nestjs/common";
-import {JwtAuthGuard} from "src/guards/jwt-auth.guard";
+import {Body, Controller, Get, NotFoundException, Post, Put, UseGuards} from "@nestjs/common";
+import {hasPermissions} from "src/auth/decorators/permission.decorator";
+import {JwtAuthGuard} from "src/auth/guards/jwt-auth.guard";
+import {PermissionGuard} from "src/auth/guards/permission.guard";
 import {PermissionService} from "src/permission/permission.service";
 import {RoleService} from "./role.service";
 
@@ -12,7 +14,8 @@ export class RoleController {
         private readonly permissionService: PermissionService
     ){}
     
-    @UseGuards(JwtAuthGuard)
+    @hasPermissions("VIEW_ROLE")
+    @UseGuards(JwtAuthGuard, PermissionGuard)
     @Get()
     async getRole(){
         const result = await this.roleService.getAllRole();
