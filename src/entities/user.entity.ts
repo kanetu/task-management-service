@@ -1,7 +1,8 @@
 import {IsEmail, Length} from "class-validator";
-import {Column, Entity, ManyToOne} from "typeorm";
+import {Column, Entity, ManyToOne, OneToMany} from "typeorm";
 import Base from "./base.entity";
 import {Role} from "./role.entity";
+import {Schedule} from "./schedule.entity";
 
 @Entity("users")
 export class User extends Base {
@@ -21,6 +22,8 @@ export class User extends Base {
     password: string;
 
     @ManyToOne(type => Role, role => role.users)
-    role: Role
+    role: Role;
 
+    @OneToMany(type => Schedule, schedule => schedule.user)
+    schedules: Schedule[];
 }       

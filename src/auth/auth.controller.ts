@@ -1,9 +1,12 @@
-import { BadRequestException, Body, Controller, Get, NotFoundException, Post, Put, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Post, Put, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import * as bcrypt from "bcrypt";
 import {JwtService} from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import {AuthService} from './auth.service';
 import {RoleService} from 'src/role/role.service';
+import {JwtAuthGuard} from './guards/jwt-auth.guard';
+import {PermissionGuard} from './guards/permission.guard';
+import {hasPermissions} from './decorators/permission.decorator';
 
 @Controller("auth")
 export class AuthController {
@@ -13,6 +16,9 @@ export class AuthController {
       private roleService: RoleService
   ) {}
   private saltOrRounds = 12;
+  private INVALID_CREDENTIAL = "Invalid Credentials";
+  private USER_NOT_FOUND = "No user was found";
+  private ROLE_NOT_FOUND = "No role was found";
 
   @Post("register")
   async register(
@@ -42,11 +48,11 @@ export class AuthController {
       const user = await this.authService.findOne({email})
 
       if(!user){
-        throw new BadRequestException("Invalid Credentials")
+        return new BadRequestException(this.INVALID_CREDENTIAL)
       }
 
       if(!await bcrypt.compare(password, user.password)){
-        throw new BadRequestException("Invalid Credentials")
+        return new BadRequestException(this.INVALID_CREDENTIAL)
       }
 
       const jwt = await this.jwtService.signAsync({id: user.id})
@@ -66,6 +72,7 @@ export class AuthController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get("user")
   async user(@Req() request: Request) {
     try {
@@ -73,46 +80,72 @@ export class AuthController {
         const data = await this.jwtService.verifyAsync(cookie);
         
         if(!data) {
-            throw new UnauthorizedException();
+            return new UnauthorizedException(this.INVALID_CREDENTIAL);
         }
 
-        const user = await this.authService.findOne({id: data["id"]})
+        const user = await this.authService.authPermissions(data["id"])
         const {password: _, ...rest} = user;
 
         return rest;
 
     }catch(e) {
-        throw new UnauthorizedException()
+        return new UnauthorizedException(this.INVALID_CREDENTIAL)
     }
   }
 
-  @Put("user")
-  async updateUser(
-      @Body("userId") userId: string,
-      @Body("name") name: string,
-      @Body("email") email: string,
-      @Body("roleId") roleId: string,
-  ){
+  @hasPermissions("EDIT_USER")
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Put("grantRole")
+  async grandRole(
+    @Body("userId") userId: string,
+    @Body("roleId") roleId: string
+  ) {
     try{
-        const user = await this.authService.findOne({id: userId})
+        const user = await this.authService.findOne({id: userId});
         if (!user){
-            throw new NotFoundException("No user was found")
+            return new NotFoundException(this.USER_NOT_FOUND)
         }
-        user.name = name ? name: user.name;
-        user.email = email ? email: user.email;
         
         if(roleId){
             const role = await this.roleService.getRole({id: roleId})
             if (!role){
-                throw new NotFoundException("No role was found")
+                return new NotFoundException(this.ROLE_NOT_FOUND)
             }
-            user.role = role;  
+                user.role = role;  
         }
         
         const updatedUser = await this.authService.save(user);
-        return updatedUser;
+        return updatedUser;  
+    } catch(err){
+        console.log(err)    
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put("user")
+  async updateUser(
+      @Req() request: Request,
+      @Body("name") name: string,
+  ){
+    try{
+
+        const cookie = request.cookies["auth"];
+        const data = await this.jwtService.verifyAsync(cookie);
+        if(!data) {
+            return new UnauthorizedException(this.INVALID_CREDENTIAL)
+        }
+        const user = await this.authService.findOne({id: data["id"]})
+        if (!user){
+            return new NotFoundException(this.USER_NOT_FOUND)
+        }
+
+        user.name = name ? name: user.name;
+       
+        const {password, ...rest}= await this.authService.save(user);
+        return rest;
+
     }catch(e) {
-        console.log(e)
+        return new BadRequestException(this.INVALID_CREDENTIAL);
     }
   }
   

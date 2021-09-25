@@ -1,4 +1,4 @@
-import {Body, Controller, Get, NotFoundException, Post, Put, UseGuards} from "@nestjs/common";
+import {Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, UseGuards} from "@nestjs/common";
 import {hasPermissions} from "src/auth/decorators/permission.decorator";
 import {JwtAuthGuard} from "src/auth/guards/jwt-auth.guard";
 import {PermissionGuard} from "src/auth/guards/permission.guard";
@@ -13,6 +13,9 @@ export class RoleController {
         private readonly roleService: RoleService,
         private readonly permissionService: PermissionService
     ){}
+
+    private ROLE_NOT_FOUND = "Role was not found";
+    private PERMISSION_NOT_FOUND = "Permission was not found"; 
     
     @hasPermissions("VIEW_ROLE")
     @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -23,6 +26,8 @@ export class RoleController {
         return result;
     }
 
+    @hasPermissions("CREATE_ROLE")
+    @UseGuards(JwtAuthGuard, PermissionGuard)  
     @Post()
     async createRole(
         @Body("name") name: string,
@@ -35,6 +40,8 @@ export class RoleController {
         return result
     }
 
+    @hasPermissions("EDIT_ROLE")
+    @UseGuards(JwtAuthGuard, PermissionGuard)  
     @Put()
     async updateRole(
         @Body("roleId") roleId: string,
@@ -44,7 +51,7 @@ export class RoleController {
         try{
             const permission = await this.permissionService.findPermission({id: permissionId})
             if(!permission) {
-                throw new NotFoundException("Permission was not found")
+                return new NotFoundException(this.PERMISSION_NOT_FOUND)
             } 
             
             const roleWithPermissions = await this.roleService.getRole(
@@ -57,7 +64,7 @@ export class RoleController {
             )
 
             if (!roleWithPermissions){
-                throw new NotFoundException("Role was not found")
+                return new NotFoundException(this.ROLE_NOT_FOUND)
             }
 
             if (!roleWithPermissions.permissions.some(p => p.title === permission.title)){
@@ -76,6 +83,24 @@ export class RoleController {
         }
         
     }
+    
+    @hasPermissions("DELETE_ROLE")
+    @UseGuards(JwtAuthGuard, PermissionGuard)
+    @Delete(":roleId")
+    async deleteRole(@Param("roleId") roleId: string) {
+         try{
+            const role = await this.roleService.getRole({id: roleId})
+            if (!role){
+                return new NotFoundException(this.ROLE_NOT_FOUND)
+            }
 
+            console.log(role)
+            const isRemove = await this.roleService.removeRole(role)
+            return {isSuccess: !!isRemove}
+
+         }catch(err){
+            console.log(err)
+         }
+    }
                                                 
 }

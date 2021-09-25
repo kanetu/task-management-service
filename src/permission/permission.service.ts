@@ -9,12 +9,16 @@ export class PermissionService {
 
     constructor(@InjectRepository(Permission) private readonly permissionRepository: Repository<Permission>){}
 
-    async savePermission(data: any): Promise<Permission>{
+    savePermission(data: any): Promise<Permission>{
         return this.permissionRepository.save(data);
     }
 
-    async findPermission(condition: any): Promise<Permission>{
+    findPermission(condition: any): Promise<Permission>{
         return this.permissionRepository.findOne(condition)
+    }
+
+    findAll(): Promise<Permission[]>{
+        return this.permissionRepository.find()
     }
     
 

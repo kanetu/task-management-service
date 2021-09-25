@@ -10,15 +10,15 @@ export class AuthService {
     
     }
 
-    async save(data: any): Promise<User>{
+    save(data: any): Promise<User>{
         return this.userRepository.save(data)
     }
 
-    async findOne(condition: any): Promise<User>{
+    findOne(condition: any): Promise<User>{
         return this.userRepository.findOne(condition)
     }
   
-    async authPermissions(userId: string): Promise<any> {
+    authPermissions(userId: string): Promise<any> {
         return this.userRepository.createQueryBuilder("user")
         .leftJoinAndSelect("user.role", "role")
         .leftJoinAndSelect("role.permissions", "permission")
