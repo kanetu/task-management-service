@@ -1,5 +1,5 @@
 import {IsEmail, Length} from "class-validator";
-import {Column, Entity, ManyToOne, OneToMany} from "typeorm";
+import {Column, Entity, JoinTable, ManyToMany, ManyToOne} from "typeorm";
 import Base from "./base.entity";
 import {Role} from "./role.entity";
 import {Schedule} from "./schedule.entity";
@@ -24,6 +24,9 @@ export class User extends Base {
     @ManyToOne(type => Role, role => role.users)
     role: Role;
 
-    @OneToMany(type => Schedule, schedule => schedule.user)
+    @ManyToMany(type => Schedule, schedule => schedule.users, {
+        cascade: true
+    })
+    @JoinTable()
     schedules: Schedule[];
 }       

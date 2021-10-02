@@ -12,6 +12,8 @@ export class Project extends Base {
     @Length(1, 255)
     name: string;
 
-    @OneToMany(type => Task , task => task.project)
+    @OneToMany(type => Task , task => task.project, {
+        cascade: true
+    })
     tasks: Task[]
 }

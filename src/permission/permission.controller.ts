@@ -2,6 +2,7 @@ import {Body, Controller, Get, NotFoundException, Post, UseGuards} from "@nestjs
 import {hasPermissions} from "src/auth/decorators/permission.decorator";
 import {JwtAuthGuard} from "src/auth/guards/jwt-auth.guard";
 import {PermissionGuard} from "src/auth/guards/permission.guard";
+import {Exception} from "src/constants/error";
 import {PermissionService} from "./permission.service";
 
 
@@ -10,8 +11,6 @@ export class PermissionController {
     constructor(
         private readonly permissionService: PermissionService
     ){}
-
-    private PERMSSIONS_NOT_FOUND = "There is no permissions were found";
 
     @hasPermissions("CREATE_PERMISSION")
     @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -35,7 +34,7 @@ export class PermissionController {
     async getAllPermission(){
         const permissions = await this.permissionService.findAll();
         if(!permissions){
-            return new NotFoundException(this.PERMSSIONS_NOT_FOUND) 
+            return new NotFoundException(Exception.PERMISSION_NOT_FOUND) 
         }
         return permissions
     }

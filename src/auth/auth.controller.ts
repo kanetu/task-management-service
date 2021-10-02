@@ -111,10 +111,10 @@ export class AuthController {
             if (!role){
                 return new NotFoundException(this.ROLE_NOT_FOUND)
             }
-                user.role = role;  
+            user.role = role;  
         }
         
-        const updatedUser = await this.authService.save(user);
+        const {password, ...updatedUser} = await this.authService.save(user);
         return updatedUser;  
     } catch(err){
         console.log(err)    

@@ -1,5 +1,5 @@
 import {Length} from "class-validator";
-import {Column, CreateDateColumn, Entity, ManyToOne} from "typeorm";
+import {Column, CreateDateColumn, Entity, ManyToMany} from "typeorm";
 import Base from "./base.entity";
 import {User} from "./user.entity";
 
@@ -26,6 +26,6 @@ export class Schedule extends Base {
     @CreateDateColumn()
     timeEnd: Date;
 
-    @ManyToOne(type => User, user => user.schedules)
-    user: User;
+    @ManyToMany(type => User, user => user.schedules)
+    users: User[];
 }

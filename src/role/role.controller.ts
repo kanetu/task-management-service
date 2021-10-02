@@ -2,6 +2,7 @@ import {Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, UseG
 import {hasPermissions} from "src/auth/decorators/permission.decorator";
 import {JwtAuthGuard} from "src/auth/guards/jwt-auth.guard";
 import {PermissionGuard} from "src/auth/guards/permission.guard";
+import {Exception} from "src/constants/error";
 import {PermissionService} from "src/permission/permission.service";
 import {RoleService} from "./role.service";
 
@@ -14,8 +15,6 @@ export class RoleController {
         private readonly permissionService: PermissionService
     ){}
 
-    private ROLE_NOT_FOUND = "Role was not found";
-    private PERMISSION_NOT_FOUND = "Permission was not found"; 
     
     @hasPermissions("VIEW_ROLE")
     @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -51,7 +50,7 @@ export class RoleController {
         try{
             const permission = await this.permissionService.findPermission({id: permissionId})
             if(!permission) {
-                return new NotFoundException(this.PERMISSION_NOT_FOUND)
+                return new NotFoundException(Exception.PERMISSION_NOT_FOUND)
             } 
             
             const roleWithPermissions = await this.roleService.getRole(
@@ -64,7 +63,7 @@ export class RoleController {
             )
 
             if (!roleWithPermissions){
-                return new NotFoundException(this.ROLE_NOT_FOUND)
+                return new NotFoundException(Exception.ROLE_NOT_FOUND)
             }
 
             if (!roleWithPermissions.permissions.some(p => p.title === permission.title)){
@@ -91,7 +90,7 @@ export class RoleController {
          try{
             const role = await this.roleService.getRole({id: roleId})
             if (!role){
-                return new NotFoundException(this.ROLE_NOT_FOUND)
+                return new NotFoundException(Exception.ROLE_NOT_FOUND)
             }
 
             console.log(role)

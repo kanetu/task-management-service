@@ -1,6 +1,5 @@
 import {CanActivate, ExecutionContext, forwardRef, Inject, Injectable} from "@nestjs/common";
 import {Reflector} from "@nestjs/core";
-import {Observable} from "rxjs";
 import {AuthService} from "../auth.service";
 
 
@@ -20,10 +19,8 @@ export class PermissionGuard implements CanActivate{
 
         const request = context.switchToHttp().getRequest();
         const userId =  request.user.userId;
-
         return this.authService.authPermissions(userId).then(
             (user: any) => {
-               
                 const userPermissions: string[] | undefined = user.role?.permissions?.map(p => p.title)
                 if (!userPermissions) return false;
                 return permissions.every(p => userPermissions.includes(p))

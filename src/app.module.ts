@@ -5,6 +5,9 @@ import {AuthModule} from './auth/auth.module';
 import {PermissionModule} from './permission/permission.module';
 import EntityCombine from "./entities/index";
 import {RoleModule} from './role/role.module';
+import {ScheduleModule} from './schedule/schedule.module';
+import {TaskModule} from './task/task.module';
+import {ProjectModule} from './project/project.module';
 
 @Module({
   imports: [
@@ -23,6 +26,9 @@ import {RoleModule} from './role/role.module';
     AuthModule,
     PermissionModule,
     RoleModule,
+    ScheduleModule,
+    TaskModule,
+    ProjectModule
   ],
   controllers: [],
   providers: [],
