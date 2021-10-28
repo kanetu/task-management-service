@@ -7,11 +7,21 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  const whiteList = ['http://localhost:4200', undefined];
   app.enableCors({
     credentials: true,
-    origin: "http://localhost:8080",
-  })
-  
+    origin: function (origin, callback) {
+      console.log('origin ->', origin);
+      if (whiteList.includes(origin)) {
+        console.log('allow cors for: ', origin);
+        callback(null, true);
+      }
+    },
+    allowedHeaders:
+      'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
+    methods: 'GET,PUT,POST,DELETE,UPDATE,OPTIONS',
+  });
+
   await app.listen(8080);
 }
 
