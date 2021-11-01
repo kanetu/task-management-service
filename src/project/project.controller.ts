@@ -18,8 +18,8 @@ import { ProjectService } from './project.service';
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
-  @hasPermissions('VIEW_PROJECT')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
+  // @hasPermissions('VIEW_PROJECT')
+  // @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get()
   async getAllProject() {
     try {
@@ -29,8 +29,8 @@ export class ProjectController {
     }
   }
 
-  @hasPermissions('VIEW_PROJECT')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
+  // @hasPermissions('VIEW_PROJECT')
+  // @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get(':projectId')
   async getProjectWithTasks(@Param('projectId') projectId: string) {
     try {

@@ -7,7 +7,11 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const whiteList = ['http://localhost:4200', 'https://app.task-management.tk', undefined];
+  const whiteList = [
+    'http://localhost:4200',
+    'https://app.task-management.tk',
+    undefined,
+  ];
   app.enableCors({
     credentials: true,
     origin: function (origin, callback) {
