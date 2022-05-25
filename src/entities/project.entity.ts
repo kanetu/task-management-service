@@ -1,7 +1,8 @@
 import { Length } from 'class-validator';
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToMany, OneToMany } from 'typeorm';
 import Base from './base.entity';
 import { Task } from './task.entity';
+import { User } from './user.entity';
 
 @Entity('projects')
 export class Project extends Base {
@@ -17,4 +18,9 @@ export class Project extends Base {
     cascade: true,
   })
   tasks: Task[];
+
+  @ManyToMany((type) => User, (user) => user.projects, {
+    cascade: true,
+  })
+  users: User[];
 }

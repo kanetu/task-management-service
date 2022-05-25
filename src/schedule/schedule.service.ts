@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Schedule } from 'src/entities/schedule.entity';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 
 @Injectable()
 export class ScheduleService {
@@ -18,15 +18,27 @@ export class ScheduleService {
     return this.scheduleRepository.findOne(condition);
   }
 
-  getAllSchedule(condition: any): Promise<Schedule[]> {
-    return this.scheduleRepository.find(condition);
+  getAllSchedule(date: Date): Promise<Schedule[]> {
+    return this.scheduleRepository.find({
+      timeStart: MoreThanOrEqual(date),
+      timeEnd: LessThanOrEqual(date),
+    });
   }
 
-  getAllScheduleBaseOnUser(userId: string): Promise<Schedule[]> {
+  getAllScheduleBaseOnUser(
+    userId: string,
+    selectedDate: Date,
+  ): Promise<Schedule[]> {
     return this.scheduleRepository
       .createQueryBuilder('schedule')
       .innerJoinAndSelect('schedule.users', 'user')
-      .where('user.id = :userId', { userId })
+      .where('schedule.timeStart <= :selectedDate', {
+        selectedDate,
+      })
+      .andWhere('schedule.timeEnd >= :selectedDate', {
+        selectedDate,
+      })
+      .andWhere('user.id = :userId', { userId })
       .getMany();
   }
 

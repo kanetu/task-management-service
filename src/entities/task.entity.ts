@@ -1,7 +1,9 @@
 import { Length, Min } from 'class-validator';
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToMany, ManyToOne } from 'typeorm';
 import Base from './base.entity';
 import { Project } from './project.entity';
+import { Tag } from './tag.entity';
+import { User } from './user.entity';
 
 export enum TaskStatus {
   NEW = 'New',
@@ -42,4 +44,10 @@ export class Task extends Base {
 
   @ManyToOne((type) => Project, (project) => project.tasks)
   project: Project;
+
+  @ManyToOne((type) => User, (user) => user.tasks)
+  assignTo: User;
+
+  @ManyToMany((type) => Tag, (tag) => tag.tasks)
+  tags: Tag[];
 }

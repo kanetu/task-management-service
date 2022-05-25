@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('api/v1');
 
   app.use(cookieParser());
 
@@ -15,9 +16,7 @@ async function bootstrap() {
   app.enableCors({
     credentials: true,
     origin: function (origin, callback) {
-      console.log('origin ->', origin);
       if (whiteList.includes(origin)) {
-        console.log('allow cors for: ', origin);
         callback(null, true);
       }
     },

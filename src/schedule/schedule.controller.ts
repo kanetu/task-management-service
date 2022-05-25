@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Post,
@@ -25,23 +26,16 @@ export class ScheduleController {
     private readonly scheduleService: ScheduleService,
     private readonly jwtService: JwtService,
     private readonly authService: AuthService,
+    @Inject('MomentWrapper') private momentWrapper: any,
   ) {}
 
   @hasPermissions('VIEW_SCHEDULE')
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @Get('/all')
-  async getAll() {
-    try {
-      return await this.scheduleService.getAllSchedule({});
-    } catch (err) {
-      console.log(err);
-    }
-  }
-
-  @hasPermissions('VIEW_SCHEDULE')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
-  @Get()
-  async getSchedule(@Req() request: Request) {
+  @Get(':selectedDate')
+  async getSchedule(
+    @Req() request: Request,
+    @Param('selectedDate') selectedDate: Date,
+  ) {
     try {
       const cookie = request.cookies['auth'];
 
@@ -49,9 +43,13 @@ export class ScheduleController {
       if (!data) {
         return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
       }
-
+      const dateFormatted = this.momentWrapper(selectedDate).format(
+        'YYYY-MM-DD HH:mm:ss',
+      );
+      console.log(dateFormatted);
       const schedules = await this.scheduleService.getAllScheduleBaseOnUser(
         data['id'],
+        dateFormatted,
       );
 
       if (!schedules) {

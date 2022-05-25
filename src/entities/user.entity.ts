@@ -1,8 +1,18 @@
 import { IsEmail, Length } from 'class-validator';
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import Base from './base.entity';
+import { Project } from './project.entity';
 import { Role } from './role.entity';
 import { Schedule } from './schedule.entity';
+import { Task } from './task.entity';
 
 @Entity('users')
 export class User extends Base {
@@ -19,6 +29,15 @@ export class User extends Base {
   @Length(8, 255)
   password: string;
 
+  @CreateDateColumn()
+  birthday: Date;
+
+  @Column()
+  isActive: boolean;
+
+  @Column()
+  avatarUrl: string;
+
   @ManyToOne((type) => Role, (role) => role.users)
   role: Role;
 
@@ -27,4 +46,11 @@ export class User extends Base {
   })
   @JoinTable()
   schedules: Schedule[];
+
+  @OneToMany((type) => Task, (task) => task.assignTo)
+  tasks: Task[];
+
+  @ManyToMany((type) => Project, (project) => project.users)
+  @JoinTable()
+  projects: Project[];
 }
