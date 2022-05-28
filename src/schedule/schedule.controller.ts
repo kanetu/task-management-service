@@ -17,6 +17,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { hasPermissions } from 'src/auth/decorators/permission.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
+import { DATETIME_FORMAT } from 'src/constants/common';
 import { Exception } from 'src/constants/error';
 import { ScheduleService } from './schedule.service';
 
@@ -43,10 +44,9 @@ export class ScheduleController {
       if (!data) {
         return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
       }
-      const dateFormatted = this.momentWrapper(selectedDate).format(
-        'YYYY-MM-DD HH:mm:ss',
-      );
-      console.log(dateFormatted);
+      const dateFormatted =
+        this.momentWrapper(selectedDate).format(DATETIME_FORMAT);
+
       const schedules = await this.scheduleService.getAllScheduleBaseOnUser(
         data['id'],
         dateFormatted,

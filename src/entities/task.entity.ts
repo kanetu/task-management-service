@@ -1,6 +1,7 @@
 import { Length, Min } from 'class-validator';
-import { Column, Entity, ManyToMany, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 import Base from './base.entity';
+import { TaskComment } from './task-comment.entity';
 import { Project } from './project.entity';
 import { Tag } from './tag.entity';
 import { User } from './user.entity';
@@ -41,6 +42,9 @@ export class Task extends Base {
   @Column()
   @Min(0)
   complete: number;
+
+  @OneToMany((type) => TaskComment, (taskComment) => taskComment.task)
+  comments: TaskComment[];
 
   @ManyToOne((type) => Project, (project) => project.tasks)
   project: Project;

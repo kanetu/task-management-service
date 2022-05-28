@@ -12,6 +12,7 @@ import Base from './base.entity';
 import { Project } from './project.entity';
 import { Role } from './role.entity';
 import { Schedule } from './schedule.entity';
+import { TaskComment } from './task-comment.entity';
 import { Task } from './task.entity';
 
 @Entity('users')
@@ -33,10 +34,16 @@ export class User extends Base {
   birthday: Date;
 
   @Column()
+  phoneNumber: string;
+
+  @Column()
   isActive: boolean;
 
   @Column()
   avatarUrl: string;
+
+  @OneToMany((type) => TaskComment, (taskComment) => taskComment.user)
+  makeComments: TaskComment[];
 
   @ManyToOne((type) => Role, (role) => role.users)
   role: Role;

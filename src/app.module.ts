@@ -8,6 +8,7 @@ import { RoleModule } from './role/role.module';
 import { ScheduleModule } from './schedule/schedule.module';
 import { TaskModule } from './task/task.module';
 import { ProjectModule } from './project/project.module';
+import { TaskCommentModule } from './task-comment/task-comment.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ProjectModule } from './project/project.module';
     ScheduleModule,
     TaskModule,
     ProjectModule,
+    TaskCommentModule,
   ],
   controllers: [],
   providers: [],

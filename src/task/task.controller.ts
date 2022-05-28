@@ -1,18 +1,24 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
   Post,
   Put,
+  Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 import { hasPermissions } from 'src/auth/decorators/permission.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { Exception } from 'src/constants/error';
 import { ProjectService } from 'src/project/project.service';
+import { TaskCommentService } from 'src/task-comment/task-comment.service';
 import { TaskService } from './task.service';
 
 @Controller('task')
@@ -20,6 +26,8 @@ export class TaskController {
   constructor(
     private readonly taskService: TaskService,
     private readonly projectService: ProjectService,
+    private readonly taskCommentService: TaskCommentService,
+    private readonly jwtService: JwtService,
   ) {}
 
   @hasPermissions('VIEW_TASK')
@@ -27,7 +35,7 @@ export class TaskController {
   @Get(':taskId')
   async getTask(@Param('taskId') taskId: string) {
     try {
-      const task = await this.taskService.getTask({ id: taskId });
+      const task = await this.taskService.getTaskWithComment(taskId);
       if (!task) {
         return new NotFoundException(Exception.TASK_NOT_FOUND);
       }
@@ -94,6 +102,114 @@ export class TaskController {
 
       const afterSaveTask = await this.taskService.saveTask(task);
       return afterSaveTask;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Post(':taskId/comment')
+  async createComment(
+    @Req() request: Request,
+    @Param('taskId') taskId: string,
+    @Body('content') content: string,
+  ) {
+    try {
+      const cookie = request.cookies['auth'];
+
+      const user = await this.jwtService.verifyAsync(cookie);
+      if (!user) {
+        return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
+      }
+      const task = await this.taskService.getTask({ id: taskId });
+      console.log(task);
+      if (!task) {
+        return new NotFoundException(Exception.TASK_NOT_FOUND);
+      }
+
+      const afterCreateComment = await this.taskCommentService.saveComment({
+        content: content,
+        task: taskId,
+        user: user.id,
+      });
+
+      return afterCreateComment;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Put(':taskId/comment/:commentId')
+  async editComment(
+    @Req() request: Request,
+    @Param('taskId') taskId: string,
+    @Param('commentId') commentId: string,
+    @Body('content') content: string,
+  ) {
+    try {
+      const cookie = request.cookies['auth'];
+
+      const user = await this.jwtService.verifyAsync(cookie);
+      if (!user) {
+        return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
+      }
+      const task = await this.taskService.getTask({ id: taskId });
+      if (!task) {
+        return new NotFoundException(Exception.TASK_NOT_FOUND);
+      }
+
+      const comment = await this.taskCommentService.getComment({
+        id: commentId,
+        user: user.id,
+      });
+      if (!comment) {
+        return new NotFoundException(Exception.COMMENT_NOT_FOUND);
+      }
+
+      comment.content = content ? content : comment.content;
+
+      const afterSaveComment = await this.taskCommentService.saveComment(
+        comment,
+      );
+
+      return afterSaveComment;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Delete(':taskId/comment/:commentId')
+  async removeComment(
+    @Req() request: Request,
+    @Param('taskId') taskId: string,
+    @Param('commentId') commentId: string,
+  ) {
+    try {
+      const cookie = request.cookies['auth'];
+
+      const user = await this.jwtService.verifyAsync(cookie);
+      if (!user) {
+        return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
+      }
+      const task = await this.taskService.getTask({ id: taskId });
+      if (!task) {
+        return new NotFoundException(Exception.TASK_NOT_FOUND);
+      }
+
+      const comment = await this.taskCommentService.getComment({
+        id: commentId,
+        user: user.id,
+      });
+      if (!comment) {
+        return new NotFoundException(Exception.COMMENT_NOT_FOUND);
+      }
+
+      const afterRemoveComment = await this.taskCommentService.removeComment(
+        comment,
+      );
+
+      return afterRemoveComment;
     } catch (err) {
       console.log(err);
     }

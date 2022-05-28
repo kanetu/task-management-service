@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Post,
@@ -151,7 +152,12 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Put('user')
-  async updateUser(@Req() request: Request, @Body('name') name: string) {
+  async updateUser(
+    @Req() request: Request,
+    @Body('name') name: string,
+    @Body('birthday') birthday: Date,
+    @Body('phoneNumber') phoneNumber: string,
+  ) {
     try {
       const cookie = request.cookies['auth'];
       const data = await this.jwtService.verifyAsync(cookie);
@@ -164,9 +170,60 @@ export class AuthController {
       }
 
       user.name = name ? name : user.name;
+      user.birthday = birthday ? birthday : user.birthday;
+      user.phoneNumber = phoneNumber ? phoneNumber : user.phoneNumber;
 
       const { password, ...rest } = await this.authService.save(user);
       return rest;
+    } catch (e) {
+      return new BadRequestException(Exception.INVALID_CREDENTIAL);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('user')
+  async deactiveUser(@Req() request: Request) {
+    try {
+      const cookie = request.cookies['auth'];
+      const data = await this.jwtService.verifyAsync(cookie);
+      if (!data) {
+        return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
+      }
+      const user = await this.authService.findOne({ id: data['id'] });
+      if (!user) {
+        return new NotFoundException(Exception.USER_NOT_FOUND);
+      }
+
+      user.isActive = false;
+
+      const { isActive } = await this.authService.save(user);
+      return { isActive };
+    } catch (e) {
+      return new BadRequestException(Exception.INVALID_CREDENTIAL);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('avatar')
+  async uploadAvatar(
+    @Req() request: Request,
+    @Body('avatarUrl') avatarUrl: string,
+  ) {
+    try {
+      const cookie = request.cookies['auth'];
+      const data = await this.jwtService.verifyAsync(cookie);
+      if (!data) {
+        return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
+      }
+      const user = await this.authService.findOne({ id: data['id'] });
+      if (!user) {
+        return new NotFoundException(Exception.USER_NOT_FOUND);
+      }
+
+      user.avatarUrl = avatarUrl ? avatarUrl : user.avatarUrl;
+
+      const { isActive } = await this.authService.save(user);
+      return { isActive };
     } catch (e) {
       return new BadRequestException(Exception.INVALID_CREDENTIAL);
     }
