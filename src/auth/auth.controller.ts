@@ -23,6 +23,8 @@ import { PermissionGuard } from './guards/permission.guard';
 import { hasPermissions } from './decorators/permission.decorator';
 import { Exception } from 'src/constants/error';
 import { finalResponse } from 'src/utilize/base-response';
+import { IPaging } from 'src/models/common/IPaging';
+import { DEFAULT_PAGING } from 'src/constants/common';
 
 @Controller('auth')
 export class AuthController {
@@ -141,15 +143,27 @@ export class AuthController {
 
   @hasPermissions('VIEW_USER')
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  @Get('user/all')
-  async getAllUser(@Res() res: Response) {
+  @Post('user/filter')
+  async getAllUser(
+    @Res() res: Response,
+    @Body('paging') paging: IPaging,
+    @Body('keyword') keyword: string,
+  ) {
     try {
-      const users = await this.authService.findAll();
-      if (!users) {
-        return new NotFoundException(Exception.USER_NOT_FOUND);
-      }
+      const query = {
+        keyword: keyword || '',
+        take: paging.pageSize || DEFAULT_PAGING.pageSize,
+        skip:
+          (paging.pageIndex || DEFAULT_PAGING.pageIndex) *
+          (paging.pageSize || DEFAULT_PAGING.pageSize),
+      };
 
-      finalResponse(res, HttpStatus.OK, { data: users });
+      const { result, total } = await this.authService.filterUser(query);
+
+      finalResponse(res, HttpStatus.OK, {
+        data: result,
+        paging: { ...paging, keyword: keyword, total },
+      });
     } catch (err) {
       finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }

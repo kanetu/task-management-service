@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
-import { Repository } from 'typeorm';
+import { IFilterUserQuery } from 'src/models/queries/IFilterUserQuery';
+import { Like, Repository } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -25,8 +26,19 @@ export class AuthService {
       .getOne();
   }
 
-  findAll(): Promise<User[]> {
-    return this.userRepository.find();
+  async filterUser(
+    query: IFilterUserQuery,
+  ): Promise<{ result: User[]; total: number }> {
+    const [result, total] = await this.userRepository.findAndCount({
+      where: { name: Like(`%${query.keyword}%`) },
+      order: { name: 'DESC' },
+      take: query.take,
+      skip: query.skip,
+    });
+    return {
+      result,
+      total,
+    };
   }
 
   authPermissions(userId: string): Promise<any> {
