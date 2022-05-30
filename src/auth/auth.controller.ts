@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   NotFoundException,
   Post,
   Put,
@@ -14,13 +15,14 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { Request, Response } from 'express';
+import { Request, response, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RoleService } from 'src/role/role.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionGuard } from './guards/permission.guard';
 import { hasPermissions } from './decorators/permission.decorator';
 import { Exception } from 'src/constants/error';
+import { finalResponse } from 'src/utilize/base-response';
 
 @Controller('auth')
 export class AuthController {
@@ -33,61 +35,65 @@ export class AuthController {
 
   @Post('register')
   async register(
+    @Res() res: Response,
     @Body('name') name: string,
     @Body('email') email: string,
     @Body('password') password: string,
   ) {
-    const hashedPassword = await bcrypt.hash(password, this.saltOrRounds);
+    try {
+      const hashedPassword = await bcrypt.hash(password, this.saltOrRounds);
 
-    const user = await this.authService.save({
-      name,
-      email,
-      password: hashedPassword,
-    });
+      const user = await this.authService.save({
+        name,
+        email,
+        password: hashedPassword,
+      });
 
-    const { password: _, ...result } = user;
-    return result;
+      const { password: _, ...result } = user;
+      finalResponse(res, HttpStatus.OK, { data: result });
+    } catch (err) {
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Post('login')
   async login(
     @Body('email') email: string,
     @Body('password') password: string,
-    @Res({ passthrough: true }) response: Response,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    const user = await this.authService.findUserWithPassword(email);
+    try {
+      const user = await this.authService.findUserWithPassword(email);
 
-    console.log(user);
-    if (!user) {
-      return new BadRequestException(Exception.INVALID_CREDENTIAL);
+      if (!user) {
+        return new BadRequestException(Exception.INVALID_CREDENTIAL);
+      }
+
+      if (!(await bcrypt.compare(password, user.password))) {
+        return new BadRequestException(Exception.INVALID_CREDENTIAL);
+      }
+
+      const jwt = await this.jwtService.signAsync({ id: user.id });
+
+      res.cookie('auth', jwt, { httpOnly: true });
+
+      finalResponse(res, HttpStatus.OK);
+    } catch (err) {
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    if (!(await bcrypt.compare(password, user.password))) {
-      return new BadRequestException(Exception.INVALID_CREDENTIAL);
-    }
-
-    const jwt = await this.jwtService.signAsync({ id: user.id });
-
-    response.cookie('auth', jwt, { httpOnly: true });
-
-    return {
-      message: 'success',
-    };
   }
 
   @Get('logout')
-  async logout(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie('auth');
-    return {
-      message: 'success',
-    };
+  async logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('auth');
+    finalResponse(res, HttpStatus.OK);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('user')
-  async user(@Req() request: Request) {
+  async user(@Res() res: Response, @Req() req: Request) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
       const data = await this.jwtService.verifyAsync(cookie);
 
       if (!data) {
@@ -97,9 +103,9 @@ export class AuthController {
       const user = await this.authService.authPermissions(data['id']);
       const { password: _, ...rest } = user;
 
-      return rest;
+      finalResponse(res, HttpStatus.OK, { data: rest });
     } catch (e) {
-      return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -107,6 +113,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Put('grantRole')
   async grandRole(
+    @Res() res: Response,
     @Body('userId') userId: string,
     @Body('roleId') roleId: string,
   ) {
@@ -124,42 +131,41 @@ export class AuthController {
         user.role = role;
       }
 
-      const { password, ...updatedUser } = await this.authService.save(user);
-      return updatedUser;
+      const updatedUser = await this.authService.save(user);
+
+      finalResponse(res, HttpStatus.OK, { data: updatedUser });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @hasPermissions('VIEW_USER')
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get('user/all')
-  async getAllUser() {
+  async getAllUser(@Res() res: Response) {
     try {
       const users = await this.authService.findAll();
       if (!users) {
         return new NotFoundException(Exception.USER_NOT_FOUND);
       }
-      const filterUsers = users.map((user) => {
-        const { password, ...rest } = user;
-        return rest;
-      });
-      return filterUsers;
+
+      finalResponse(res, HttpStatus.OK, { data: users });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @UseGuards(JwtAuthGuard)
   @Put('user')
   async updateUser(
-    @Req() request: Request,
+    @Res() res: Response,
+    @Req() req: Request,
     @Body('name') name: string,
     @Body('birthday') birthday: Date,
     @Body('phoneNumber') phoneNumber: string,
   ) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
       const data = await this.jwtService.verifyAsync(cookie);
       if (!data) {
         return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
@@ -173,18 +179,19 @@ export class AuthController {
       user.birthday = birthday ? birthday : user.birthday;
       user.phoneNumber = phoneNumber ? phoneNumber : user.phoneNumber;
 
-      const { password, ...rest } = await this.authService.save(user);
-      return rest;
+      const savedUser = await this.authService.save(user);
+
+      finalResponse(res, HttpStatus.OK, { data: savedUser });
     } catch (e) {
-      return new BadRequestException(Exception.INVALID_CREDENTIAL);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('user')
-  async deactiveUser(@Req() request: Request) {
+  async deactiveUser(@Res() res: Response, @Req() req: Request) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
       const data = await this.jwtService.verifyAsync(cookie);
       if (!data) {
         return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
@@ -197,20 +204,21 @@ export class AuthController {
       user.isActive = false;
 
       const { isActive } = await this.authService.save(user);
-      return { isActive };
+      finalResponse(res, HttpStatus.OK, { data: { isActive } });
     } catch (e) {
-      return new BadRequestException(Exception.INVALID_CREDENTIAL);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('avatar')
   async uploadAvatar(
-    @Req() request: Request,
+    @Res() res: Response,
+    @Req() req: Request,
     @Body('avatarUrl') avatarUrl: string,
   ) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
       const data = await this.jwtService.verifyAsync(cookie);
       if (!data) {
         return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
@@ -222,10 +230,11 @@ export class AuthController {
 
       user.avatarUrl = avatarUrl ? avatarUrl : user.avatarUrl;
 
-      const { isActive } = await this.authService.save(user);
-      return { isActive };
+      const savedUser = await this.authService.save(user);
+
+      finalResponse(res, HttpStatus.OK, { data: savedUser });
     } catch (e) {
-      return new BadRequestException(Exception.INVALID_CREDENTIAL);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

@@ -3,22 +3,25 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   NotFoundException,
   Param,
   Post,
   Put,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { hasPermissions } from 'src/auth/decorators/permission.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { Exception } from 'src/constants/error';
 import { ProjectService } from 'src/project/project.service';
 import { TaskCommentService } from 'src/task-comment/task-comment.service';
+import { finalResponse } from 'src/utilize/base-response';
 import { TaskService } from './task.service';
 
 @Controller('task')
@@ -33,15 +36,15 @@ export class TaskController {
   @hasPermissions('VIEW_TASK')
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get(':taskId')
-  async getTask(@Param('taskId') taskId: string) {
+  async getTask(@Res() res: Response, @Param('taskId') taskId: string) {
     try {
       const task = await this.taskService.getTaskWithComment(taskId);
       if (!task) {
         return new NotFoundException(Exception.TASK_NOT_FOUND);
       }
-      return task;
+      finalResponse(res, HttpStatus.OK, { data: task });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -49,6 +52,7 @@ export class TaskController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Post(':projectId')
   async createTask(
+    @Res() res: Response,
     @Param('projectId') projectId: string,
     @Body('title') title: string,
     @Body('description') description: string,
@@ -70,9 +74,9 @@ export class TaskController {
         project: projectId,
       });
 
-      return task;
+      finalResponse(res, HttpStatus.OK, { data: task });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -80,6 +84,7 @@ export class TaskController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Put(':taskId')
   async updateTask(
+    @Res() res: Response,
     @Param('taskId') taskId: string,
     @Body('title') title: string,
     @Body('description') description: string,
@@ -101,28 +106,30 @@ export class TaskController {
       task.complete = complete ? complete : task.complete;
 
       const afterSaveTask = await this.taskService.saveTask(task);
-      return afterSaveTask;
+
+      finalResponse(res, HttpStatus.OK, { data: afterSaveTask });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Post(':taskId/comment')
   async createComment(
-    @Req() request: Request,
+    @Res() res: Response,
+    @Req() req: Request,
     @Param('taskId') taskId: string,
     @Body('content') content: string,
   ) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
 
       const user = await this.jwtService.verifyAsync(cookie);
       if (!user) {
         return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
       }
       const task = await this.taskService.getTask({ id: taskId });
-      console.log(task);
+
       if (!task) {
         return new NotFoundException(Exception.TASK_NOT_FOUND);
       }
@@ -133,22 +140,23 @@ export class TaskController {
         user: user.id,
       });
 
-      return afterCreateComment;
+      finalResponse(res, HttpStatus.OK, { data: afterCreateComment });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Put(':taskId/comment/:commentId')
   async editComment(
-    @Req() request: Request,
+    @Res() res: Response,
+    @Req() req: Request,
     @Param('taskId') taskId: string,
     @Param('commentId') commentId: string,
     @Body('content') content: string,
   ) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
 
       const user = await this.jwtService.verifyAsync(cookie);
       if (!user) {
@@ -173,20 +181,21 @@ export class TaskController {
         comment,
       );
 
-      return afterSaveComment;
+      finalResponse(res, HttpStatus.OK, { data: afterSaveComment });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Delete(':taskId/comment/:commentId')
   async removeComment(
-    @Req() request: Request,
+    @Res() res: Response,
+    @Req() req: Request,
     @Param('taskId') taskId: string,
     @Param('commentId') commentId: string,
   ) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
 
       const user = await this.jwtService.verifyAsync(cookie);
       if (!user) {
@@ -209,9 +218,9 @@ export class TaskController {
         comment,
       );
 
-      return afterRemoveComment;
+      finalResponse(res, HttpStatus.OK, { data: afterRemoveComment });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

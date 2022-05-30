@@ -1,7 +1,15 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import * as moment from 'moment';
+import { AuthModule } from 'src/auth/auth.module';
 @Module({
-  imports: [],
+  imports: [
+    forwardRef(() => AuthModule),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1d' },
+    }),
+  ],
   controllers: [],
   providers: [
     {
@@ -10,6 +18,8 @@ import * as moment from 'moment';
     },
   ],
   exports: [
+    JwtModule,
+    AuthModule,
     {
       provide: 'MomentWrapper',
       useValue: moment,

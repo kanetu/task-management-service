@@ -2,23 +2,26 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Inject,
   NotFoundException,
   Param,
   Post,
   Put,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from 'src/auth/auth.service';
 import { hasPermissions } from 'src/auth/decorators/permission.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { DATETIME_FORMAT } from 'src/constants/common';
 import { Exception } from 'src/constants/error';
+import { finalResponse } from 'src/utilize/base-response';
 import { ScheduleService } from './schedule.service';
 
 @Controller('schedule')
@@ -34,11 +37,12 @@ export class ScheduleController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get(':selectedDate')
   async getSchedule(
-    @Req() request: Request,
+    @Res() res: Response,
+    @Req() req: Request,
     @Param('selectedDate') selectedDate: Date,
   ) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
 
       const data = await this.jwtService.verifyAsync(cookie);
       if (!data) {
@@ -56,9 +60,9 @@ export class ScheduleController {
         return new NotFoundException(Exception.SCHEDULE_NOT_FOUND);
       }
 
-      return schedules;
+      finalResponse(res, HttpStatus.OK, { data: schedules });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -66,7 +70,8 @@ export class ScheduleController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Post()
   async createSchedule(
-    @Req() request: Request,
+    @Req() req: Request,
+    @Res() res: Response,
     @Body('title') title: string,
     @Body('description') description: string,
     @Body('place') place: string,
@@ -74,7 +79,7 @@ export class ScheduleController {
     @Body('timeEnd') timeEnd: Date,
   ) {
     try {
-      const cookie = request.cookies['auth'];
+      const cookie = req.cookies['auth'];
       const data = this.jwtService.decode(cookie);
       if (!data) {
         return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
@@ -105,11 +110,11 @@ export class ScheduleController {
         user.schedules.push(schedule);
       }
 
-      const { password, ...rest } = await this.authService.save(user);
+      const savedUser = await this.authService.save(user);
 
-      return rest;
+      finalResponse(res, HttpStatus.OK, { data: savedUser });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -117,6 +122,7 @@ export class ScheduleController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Put(':scheduleId')
   async updateSchedule(
+    @Res() res: Response,
     @Param('scheduleId') scheduleId: string,
     @Body('title') title: string,
     @Body('description') description: string,
@@ -159,14 +165,10 @@ export class ScheduleController {
       const afterSaveSchedule = await this.scheduleService.saveSchedule(
         schedule,
       );
-      const listUser = afterSaveSchedule.users.map((u) => {
-        const { password, ...rest } = u;
-        return rest;
-      });
-      const { users, ...rest } = afterSaveSchedule;
-      return { ...rest, listUser };
+
+      finalResponse(res, HttpStatus.OK, { data: afterSaveSchedule });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

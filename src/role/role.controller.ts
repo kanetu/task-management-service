@@ -3,17 +3,21 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   NotFoundException,
   Param,
   Post,
   Put,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { hasPermissions } from 'src/auth/decorators/permission.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { Exception } from 'src/constants/error';
 import { PermissionService } from 'src/permission/permission.service';
+import { finalResponse } from 'src/utilize/base-response';
 import { RoleService } from './role.service';
 
 @Controller('role')
@@ -26,27 +30,35 @@ export class RoleController {
   @hasPermissions('VIEW_ROLE')
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get()
-  async getRole() {
-    const result = await this.roleService.getAllRole();
-
-    return result;
+  async getRole(@Res() res: Response) {
+    try {
+      const result = await this.roleService.getAllRole();
+      finalResponse(res, HttpStatus.OK, { data: result });
+    } catch (err) {
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @hasPermissions('CREATE_ROLE')
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Post()
-  async createRole(@Body('name') name: string) {
-    const result = await this.roleService.saveRole({
-      name,
-    });
+  async createRole(@Res() res: Response, @Body('name') name: string) {
+    try {
+      const data = await this.roleService.saveRole({
+        name,
+      });
 
-    return result;
+      finalResponse(res, HttpStatus.OK, { data });
+    } catch (err) {
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @hasPermissions('EDIT_ROLE')
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Put()
   async updateRole(
+    @Res() res: Response,
     @Body('roleId') roleId: string,
     @Body('permissionId') permissionId: string,
   ) {
@@ -82,29 +94,28 @@ export class RoleController {
           );
       }
 
-      await this.roleService.saveRole(roleWithPermissions);
+      const data = await this.roleService.saveRole(roleWithPermissions);
 
-      return roleWithPermissions;
+      finalResponse(res, HttpStatus.OK, { data });
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @hasPermissions('DELETE_ROLE')
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Delete(':roleId')
-  async deleteRole(@Param('roleId') roleId: string) {
+  async deleteRole(@Res() res: Response, @Param('roleId') roleId: string) {
     try {
       const role = await this.roleService.getRole({ id: roleId });
       if (!role) {
         return new NotFoundException(Exception.ROLE_NOT_FOUND);
       }
 
-      console.log(role);
-      const isRemove = await this.roleService.removeRole(role);
-      return { isSuccess: !!isRemove };
+      await this.roleService.removeRole(role);
+      finalResponse(res, HttpStatus.OK);
     } catch (err) {
-      console.log(err);
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

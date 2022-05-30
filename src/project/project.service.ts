@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Project } from 'src/entities/project.entity';
-import { Repository } from 'typeorm';
+import { IFilterProjectQuery } from 'src/models/queries/IFilterProjectQuery';
+import { Like, Repository } from 'typeorm';
 
 @Injectable()
 export class ProjectService {
@@ -20,5 +21,20 @@ export class ProjectService {
 
   findAll(conditions?: any): Promise<Project[]> {
     return this.projectRepository.find(conditions);
+  }
+
+  async filterProjects(
+    query: IFilterProjectQuery,
+  ): Promise<{ result: Project[]; total: number }> {
+    const [result, total] = await this.projectRepository.findAndCount({
+      where: { name: Like(`%${query.keyword}%`) },
+      order: { name: 'DESC' },
+      take: query.take,
+      skip: query.skip,
+    });
+    return {
+      result,
+      total,
+    };
   }
 }

@@ -1,23 +1,18 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthModule } from 'src/auth/auth.module';
 import { Task } from 'src/entities/task.entity';
 import { ProjectModule } from 'src/project/project.module';
+import { SharedModule } from 'src/shared/shared.module';
 import { TaskCommentModule } from 'src/task-comment/task-comment.module';
 import { TaskController } from './task.controller';
 import { TaskService } from './task.service';
 
 @Module({
   imports: [
-    forwardRef(() => AuthModule),
+    SharedModule,
     TypeOrmModule.forFeature([Task]),
     ProjectModule,
     TaskCommentModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1d' },
-    }),
   ],
   controllers: [TaskController],
   providers: [TaskService],
