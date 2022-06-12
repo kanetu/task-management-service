@@ -18,24 +18,27 @@ export class ScheduleService {
     return this.scheduleRepository.findOne(condition);
   }
 
-  getAllSchedule(date: Date): Promise<Schedule[]> {
+  getAllScheduleInRange(
+    firstDate: Date,
+    secondDate: Date,
+  ): Promise<Schedule[]> {
     return this.scheduleRepository.find({
-      timeStart: MoreThanOrEqual(date),
-      timeEnd: LessThanOrEqual(date),
+      timeStart: MoreThanOrEqual(firstDate),
+      timeEnd: LessThanOrEqual(secondDate),
     });
   }
 
-  getAllScheduleBaseOnUser(
+  getAllScheduleBaseOnSelectedDate(
     userId: string,
     selectedDate: Date,
   ): Promise<Schedule[]> {
     return this.scheduleRepository
       .createQueryBuilder('schedule')
       .innerJoinAndSelect('schedule.users', 'user')
-      .where('schedule.timeStart <= :selectedDate', {
+      .where('DATE(schedule.timeStart) <= DATE(:selectedDate)', {
         selectedDate,
       })
-      .andWhere('schedule.timeEnd >= :selectedDate', {
+      .andWhere('DATE(schedule.timeEnd) >= DATE(:selectedDate)', {
         selectedDate,
       })
       .andWhere('user.id = :userId', { userId })

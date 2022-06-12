@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -35,6 +36,39 @@ export class ScheduleController {
 
   @hasPermissions('VIEW_SCHEDULE')
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Get('range')
+  async getScheduleInRange(
+    @Res() res: Response,
+    @Req() req: Request,
+    @Query() query: { firstDate: Date; lastDate: Date },
+  ) {
+    try {
+      const cookie = req.cookies['auth'];
+
+      const data = await this.jwtService.verifyAsync(cookie);
+      if (!data) {
+        return new UnauthorizedException(Exception.INVALID_CREDENTIAL);
+      }
+
+      const { firstDate, lastDate } = query;
+
+      const schedules = await this.scheduleService.getAllScheduleInRange(
+        firstDate,
+        lastDate,
+      );
+
+      if (!schedules) {
+        return new NotFoundException(Exception.SCHEDULE_NOT_FOUND);
+      }
+
+      finalResponse(res, HttpStatus.OK, { data: schedules });
+    } catch (err) {
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @hasPermissions('VIEW_SCHEDULE')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get(':selectedDate')
   async getSchedule(
     @Res() res: Response,
@@ -51,10 +85,11 @@ export class ScheduleController {
       const dateFormatted =
         this.momentWrapper(selectedDate).format(DATETIME_FORMAT);
 
-      const schedules = await this.scheduleService.getAllScheduleBaseOnUser(
-        data['id'],
-        dateFormatted,
-      );
+      const schedules =
+        await this.scheduleService.getAllScheduleBaseOnSelectedDate(
+          data['id'],
+          dateFormatted,
+        );
 
       if (!schedules) {
         return new NotFoundException(Exception.SCHEDULE_NOT_FOUND);

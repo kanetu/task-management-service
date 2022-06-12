@@ -7,11 +7,11 @@ import { Tag } from './tag.entity';
 import { User } from './user.entity';
 
 export enum TaskStatus {
-  NEW = 'New',
-  IN_PROCESSING = 'In processing',
-  RESOLVE = 'Resolve',
-  READY_FOR_TEST = 'Ready for test',
-  CLOSE = 'Close',
+  NEW = 'NEW',
+  IN_PROCESSING = 'IN_PROCESSING',
+  RESOLVE = 'RESOLVE',
+  READY_FOR_TEST = 'READY_FOR_TEST',
+  CLOSE = 'CLOSE',
 }
 
 @Entity('tasks')
