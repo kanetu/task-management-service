@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { AuthService } from 'src/auth/auth.service';
 import { hasPermissions } from 'src/auth/decorators/permission.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
@@ -22,7 +23,10 @@ import { ProjectService } from './project.service';
 
 @Controller('project')
 export class ProjectController {
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(
+    private readonly projectService: ProjectService,
+    private readonly authService: AuthService,
+  ) {}
 
   // @hasPermissions('VIEW_PROJECT')
   // @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -41,7 +45,7 @@ export class ProjectController {
           (paging.pageSize || DEFAULT_PAGING.pageSize),
       };
       const { result, total } = await this.projectService.filterProjects(query);
-
+      console.log(result);
       finalResponse(res, HttpStatus.OK, {
         data: result,
         paging: { ...paging, keyword: keyword, total },
@@ -60,7 +64,7 @@ export class ProjectController {
   ) {
     try {
       const project = await this.projectService.findProject({
-        relations: ['tasks'],
+        relations: ['tasks', 'users', 'users.role'],
         where: {
           id: projectId,
         },
@@ -110,6 +114,43 @@ export class ProjectController {
       }
       project.name = name ? name : project.name;
       project.description = description ? description : project.description;
+
+      const afterSaveProject = await this.projectService.saveProject(project);
+      finalResponse(res, HttpStatus.OK, { data: afterSaveProject });
+    } catch (err) {
+      finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @hasPermissions('EDIT_PROJECT')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Post('addMember/:projectId')
+  async addMember(
+    @Res() res: Response,
+    @Param('projectId') projectId: string,
+    @Body('userId') userId: string,
+  ) {
+    try {
+      const user = await this.authService.findOne({ id: userId });
+      if (!user) {
+        return new NotFoundException(Exception.USER_NOT_FOUND);
+      }
+      const project = await this.projectService.findProject({
+        relations: ['users'],
+        where: {
+          id: projectId,
+        },
+      });
+
+      if (!project) {
+        return new NotFoundException(Exception.PROJECT_NOT_FOUND);
+      }
+
+      if (!project.users.some((p) => p.id === user.id)) {
+        project.users.push(user);
+      } else {
+        project.users = project.users.filter((p) => p.id !== user.id);
+      }
 
       const afterSaveProject = await this.projectService.saveProject(project);
       finalResponse(res, HttpStatus.OK, { data: afterSaveProject });

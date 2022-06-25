@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { Request, response, Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RoleService } from 'src/role/role.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -165,6 +165,7 @@ export class AuthController {
         paging: { ...paging, keyword: keyword, total },
       });
     } catch (err) {
+      console.log(err);
       finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

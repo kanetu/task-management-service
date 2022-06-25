@@ -26,12 +26,15 @@ export class ProjectService {
   async filterProjects(
     query: IFilterProjectQuery,
   ): Promise<{ result: Project[]; total: number }> {
-    const [result, total] = await this.projectRepository.findAndCount({
-      where: { name: Like(`%${query.keyword}%`) },
-      order: { name: 'DESC' },
-      take: query.take,
-      skip: query.skip,
-    });
+    const [result, total] = await this.projectRepository
+      .createQueryBuilder('project')
+      .leftJoinAndSelect('project.users', 'user')
+      .orderBy('project.name', 'DESC')
+      .where('project.name LIKE :keyword', { keyword: `%${query.keyword}%` })
+      .take(query.take)
+      .skip(query.skip)
+      .getManyAndCount();
+
     return {
       result,
       total,
