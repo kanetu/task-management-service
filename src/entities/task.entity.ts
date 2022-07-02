@@ -13,7 +13,12 @@ export enum TaskStatus {
   READY_FOR_TEST = 'READY_FOR_TEST',
   CLOSE = 'CLOSE',
 }
-
+export enum TaskPriority {
+  CRITICAL = 'CRITICAL',
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW',
+}
 @Entity('tasks')
 export class Task extends Base {
   @Column()
@@ -31,6 +36,13 @@ export class Task extends Base {
   })
   status: string;
 
+  @Column({
+    type: 'enum',
+    enum: TaskPriority,
+    default: TaskPriority.LOW,
+  })
+  priority: string;
+
   @Column()
   @Min(0)
   remaining: number;
@@ -39,9 +51,7 @@ export class Task extends Base {
   @Min(0)
   estimate: number;
 
-  @Column()
-  @Min(0)
-  complete: number;
+  @Column() @Min(0) complete: number;
 
   @OneToMany((type) => TaskComment, (taskComment) => taskComment.task)
   comments: TaskComment[];

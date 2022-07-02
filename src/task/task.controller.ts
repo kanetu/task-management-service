@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
+import { AuthService } from 'src/auth/auth.service';
 import { hasPermissions } from 'src/auth/decorators/permission.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
@@ -31,6 +32,7 @@ export class TaskController {
     private readonly projectService: ProjectService,
     private readonly taskCommentService: TaskCommentService,
     private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
   ) {}
 
   @hasPermissions('VIEW_TASK')
@@ -59,6 +61,7 @@ export class TaskController {
     @Body('remaining') remaining: string,
     @Body('estimate') estimate: string,
     @Body('complete') complete: string,
+    @Body('status') status: string,
   ) {
     try {
       const project = await this.projectService.findProject({ id: projectId });
@@ -71,6 +74,7 @@ export class TaskController {
         remaining,
         estimate,
         complete,
+        status,
         project: projectId,
       });
 
@@ -87,8 +91,10 @@ export class TaskController {
     @Res() res: Response,
     @Param('taskId') taskId: string,
     @Body('title') title: string,
+    @Body('assignTo') assignTo: string,
     @Body('description') description: string,
     @Body('status') status: string,
+    @Body('priority') priority: string,
     @Body('remaining') remaining: number,
     @Body('estimate') estimate: number,
     @Body('complete') complete: number,
@@ -101,9 +107,19 @@ export class TaskController {
       task.title = title ? title : task.title;
       task.description = description ? description : task.description;
       task.status = status ? status : task.status;
+      task.priority = priority ? priority : task.priority;
       task.remaining = remaining ? remaining : task.remaining;
       task.estimate = estimate ? estimate : task.estimate;
       task.complete = complete ? complete : task.complete;
+
+      if (assignTo) {
+        const user = await this.authService.findOne({ id: assignTo });
+        if (!user) {
+          return new NotFoundException(Exception.USER_NOT_FOUND);
+        }
+
+        task.assignTo = user;
+      }
 
       const afterSaveTask = await this.taskService.saveTask(task);
 

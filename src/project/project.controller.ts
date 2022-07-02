@@ -64,7 +64,14 @@ export class ProjectController {
   ) {
     try {
       const project = await this.projectService.findProject({
-        relations: ['tasks', 'users', 'users.role'],
+        relations: [
+          'tasks',
+          'tasks.assignTo',
+          'tasks.comments',
+          'tasks.comments.user',
+          'users',
+          'users.role',
+        ],
         where: {
           id: projectId,
         },
