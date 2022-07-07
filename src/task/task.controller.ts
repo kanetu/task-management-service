@@ -61,12 +61,20 @@ export class TaskController {
     @Body('remaining') remaining: string,
     @Body('estimate') estimate: string,
     @Body('complete') complete: string,
-    @Body('status') status: string,
+    @Body('priority') priority: string,
+    @Body('assignTo') assignTo: string,
   ) {
     try {
       const project = await this.projectService.findProject({ id: projectId });
       if (!project) {
         return new NotFoundException(Exception.PROJECT_NOT_FOUND);
+      }
+      let user;
+      if (assignTo) {
+        user = await this.authService.findOne({ id: assignTo });
+        if (!user) {
+          return new NotFoundException(Exception.USER_NOT_FOUND);
+        }
       }
       const task = await this.taskService.saveTask({
         title,
@@ -74,8 +82,10 @@ export class TaskController {
         remaining,
         estimate,
         complete,
-        status,
+        status: 'NEW',
+        priority,
         project: projectId,
+        assignTo: user ? user : null,
       });
 
       finalResponse(res, HttpStatus.OK, { data: task });
