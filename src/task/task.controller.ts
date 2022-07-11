@@ -202,6 +202,7 @@ export class TaskController {
       }
 
       comment.content = content ? content : comment.content;
+      comment.updateAt = new Date();
 
       const afterSaveComment = await this.taskCommentService.saveComment(
         comment,
