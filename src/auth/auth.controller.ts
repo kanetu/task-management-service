@@ -79,7 +79,9 @@ export class AuthController {
 
       res.cookie('auth', jwt, { httpOnly: true });
 
-      finalResponse(res, HttpStatus.OK);
+      const info = await this.authService.authPermissions(`${user.id}`);
+      const { password: _, ...rest } = info;
+      finalResponse(res, HttpStatus.OK, { data: rest });
     } catch (err) {
       finalResponse(res, HttpStatus.INTERNAL_SERVER_ERROR);
     }

@@ -50,6 +50,17 @@ export class AuthService {
       .leftJoinAndSelect('user.role', 'role')
       .leftJoinAndSelect('role.permissions', 'permission')
       .where({ id: userId })
+      .select([
+        'user.name',
+        'user.email',
+        'user.birthday',
+        'user.phoneNumber',
+        'user.isActive',
+        'user.avatarUrl',
+        'role.name',
+        'permission.title',
+        'permission.active',
+      ])
       .getOne();
   }
 }
