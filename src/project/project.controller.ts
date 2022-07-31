@@ -28,8 +28,8 @@ export class ProjectController {
     private readonly authService: AuthService,
   ) {}
 
-  // @hasPermissions('VIEW_PROJECT')
-  // @UseGuards(JwtAuthGuard, PermissionGuard)
+  @hasPermissions('VIEW_PROJECT')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @Post('/filter')
   async filterProject(
     @Res() res: Response,
@@ -55,8 +55,8 @@ export class ProjectController {
     }
   }
 
-  // @hasPermissions('VIEW_PROJECT')
-  // @UseGuards(JwtAuthGuard, PermissionGuard)
+  @hasPermissions('VIEW_PROJECT')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @Get(':projectId')
   async getProjectWithTasks(
     @Res() res: Response,
